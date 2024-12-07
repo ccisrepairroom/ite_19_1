@@ -11,6 +11,8 @@ use Spatie\Permission\Models\Role;
 use App\Models\User;
 use App\Models\FrequentShopper;
 use Filament\Forms\Components\DatePicker;
+use Illuminate\Support\Facades\Redirect;
+
 
 
 class Register extends AuthRegister
@@ -23,11 +25,23 @@ class Register extends AuthRegister
             
             // Use Filament's existing form components
             $this->getNameFormComponent()
-            ->required(),
+            ->required()
+            ->placeholder('Eg., Claire P. Nakila'),
             $this->getEmailFormComponent()
-            ->required(),
+            ->required()
+            ->unique()
+            ->validationMessages([
+                'unique' => 'Email already exist',
+               
+            ])
+            ->placeholder('Eg., clairenakila@gmail.com'),
             $this->getPasswordFormComponent()
-            ->required(),
+            ->required()
+            ->placeholder('Must be atleast 8 characters')
+            ->minLength(8)
+            ->validationMessages([
+                'minLength' => 'Must be atleast 8 characters', 
+            ]),
             $this->getPasswordConfirmationFormComponent()
             ->required(),
 
@@ -35,29 +49,16 @@ class Register extends AuthRegister
             TextInput::make('contact_number')
                 ->label('Contact Number')
                 ->required()
-                ->maxLength(15),
-
-            Select::make('is_frequent_shopper')
-                ->label('Apply Frequent Shopper Program?')
-                ->reactive()
-                ->options([
-                    1 => 'Yes',
-                    0 => 'No',
-                ])
-                ->default(0) // Default to "No"
-                ->required(),
-            TextInput::make('frequent_shopper.username')
-                ->label('Frequent Shopper Username')
-                ->required()
-                ->visible(fn(callable $get) => $get('is_frequent_shopper') === 1),
-                //->visible(fn($get) => $get('is_frequent_shopper') == 1), // Conditional visibility
-            DatePicker::make('frequent_shopper.membership_date')
-                ->label('Membership Date')
-                ->date()
-                ->visible(fn($get) => $get('user.is_frequent_shopper') == 1), // Conditional visibility
-
+                ->maxLength(11)
+                ->placeholder('11 digits only. Eg., 09918895966')
+                ->numeric()
+                ->validationMessages([
+                    'numeric' => 'Only numbers are accepted',
+                    'maxLength' => 'Contact number must be exactly 11 digits', 
+                ]),
+            
             Select::make('role_id')
-                ->label('Roles')
+                ->label('Role')
                 ->options(function () {
                     // Only return vendor (role_id = 3) and customer (role_id = 4)
                     return Role::whereIn('id', [3, 4])->pluck('name', 'id');
@@ -72,13 +73,37 @@ class Register extends AuthRegister
                 })
                 ->preload()
                 ->required()
+                ->reactive()
                 ->searchable(),
+
+            Select::make('is_frequent_shopper')
+                ->label('Apply Frequent Shopper Program?')
+                ->reactive()
+                ->options([
+                    1 => 'Yes',
+                    0 => 'No',
+                ])
+                ->default(0) // Default to "No"
+                ->visible(fn (callable $get) => $get('role_id') == 4)
+                ->required(),
+            Select::make('frequent_shopper.is_anonymous')
+                ->label('Remain as Anonymous Frequent Shopper?')
+                ->reactive()
+                ->options([
+                    1 => 'Yes',
+                    0 => 'No',
+                ])
+                ->visible(fn($get) => $get('is_frequent_shopper') == 1) // Conditional visibility                
+                ->required(),
+           
+
         ])
         ->statePath('data');
     }
 
     protected function onSubmit(array $data): void
     {
+        $user = auth()->user();
         // Create the user
         $user = User::create([
             'name' => $data['name'],
@@ -89,24 +114,28 @@ class Register extends AuthRegister
             'role_id' => $data['role_id'],
 
         ]);
-         // Create Frequent Shopper data if "Yes" was selected
-         if ($data['is_frequent_shopper'] == 1) {
-            \App\Models\FrequentShopper::create([
-                'username' => $data['frequent_shopper_username'],
-                'total_spent' => $data['frequent_shopper_total_spent'],
-                'point_balance' => $data['frequent_shopper_point_balance'],
-                'membership_date' => $data['frequent_shopper_membership_date'],
-                'status' => 1, // Active status for frequent shoppers
-                'user_id' => $user->id, // Link the frequent shopper data to the user
-            ]);
-        }
+        
+        
 
         // Assign roles to the user using assignRole
         if (isset($data['role_id'])) {
             $user->assignRole($data['role_id']); // Automatically assigns the role based on role_id
         }
+        $frequentShopper = FrequentShopper::firstOrCreate(
+            ['user_id' => $user->id], // Check if a record already exists for this user
+            [
+                'is_anonymous' => $data['frequent_shopper'], // Default to 0 if not provided
+                'username' => $data['frequent_shopper'], // Handle anonymous or username
+                'total_spent' => 0, // Initialize total spent
+                'point_balance' => 0, // Initialize point balance
+                'membership_date' => now(), // Set the current date as the membership date
+                'status' => 0, // Default to inactive (0)
+            ]
+            );
+    
 
         // Log in the user
         auth()->login($user);
+        
     }
 }
