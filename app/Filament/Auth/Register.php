@@ -6,38 +6,18 @@ use Filament\Forms\Form;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Auth\Register as AuthRegister;
-use App\Models\User;
 use Filament\Forms\Components\FileUpload;
-use Spatie\Permission\Models\Role; // Import Role class
+use Spatie\Permission\Models\Role;
+use App\Models\User;
 
 class Register extends AuthRegister
 {
-    protected function createUser(array $data): User
-    {
-        // Create the user
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => bcrypt($data['password']),
-            'contact_number' => $data['contact_number'],
-            'is_frequent_shopper' => $data['is_frequent_shopper'],
-        ]);
-
-        // Assign roles if provided
-        if (isset($data['roles']) && is_array($data['roles'])) {
-            $roleNames = Role::whereIn('id', $data['roles'])->pluck('name'); // Fetch role names by IDs
-            $user->assignRole($roleNames);
-        }
-
-        return $user;
-    }
-
     public function form(Form $form): Form
     {
         return $form->schema([
             FileUpload::make('profile_image')
                 ->avatar(),
-
+            
             // Use Filament's existing form components
             $this->getNameFormComponent(),
             $this->getEmailFormComponent(),
@@ -56,16 +36,36 @@ class Register extends AuthRegister
                     1 => 'Yes',
                     0 => 'No',
                 ])
-                ->default(0) // Changed to default to 0 for 'No'
+                ->default(0) // Default to "No"
                 ->required(),
 
-            // Add a role selection field
             Select::make('roles')
                 ->label('Roles')
                 ->multiple()
-                ->options(Role::all()->pluck('name', 'id')) // Get all roles for selection
-                ->required(),
+                ->options(Role::pluck('name', 'id'))
+                ->preload()
+                ->searchable(),
         ])
         ->statePath('data');
+    }
+
+    protected function onSubmit(array $data): void
+    {
+        // Create the user
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => bcrypt($data['password']),
+            'contact_number' => $data['contact_number'],
+            'is_frequent_shopper' => $data['is_frequent_shopper'],
+        ]);
+
+        // Assign roles to the user using assignRole
+        if (isset($data['roles']) && is_array($data['roles'])) {
+            $user->assignRole($data['roles']); // Automatically assigns the roles
+        }
+
+        // Log in the user
+        auth()->login($user);
     }
 }

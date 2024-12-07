@@ -32,8 +32,10 @@ class User extends Authenticatable
         'name',
         'email',
         //'role_id',
-        'department',
-        'designation',
+        'contact_number',
+        'profile_image',
+        'is_frequent_shopper',
+        'role_id',
         'password',
     ];
 
@@ -56,6 +58,15 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function frequentShopper()
+    {
+        return $this->belongsTo(FrequentShopper::class, 'user_id');
+    }
+    public function marketBasket()
+    {
+        return $this->hasMany(MarketBasket::class, 'user_id');
+    }
     
 
    
