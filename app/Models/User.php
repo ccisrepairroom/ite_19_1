@@ -67,7 +67,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(MarketBasket::class, 'user_id');
     }
-    
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
 
    
 }

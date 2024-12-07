@@ -16,7 +16,7 @@ class CategoryPolicy
     public function viewAny(User $user): bool
     {
        // return $user->can('view_any_category');
-       return $user->hasRole(['super_admin','admin','staff']);
+       return $user->hasRole(['super_admin','admin']);
     }
 
     /**
@@ -24,7 +24,7 @@ class CategoryPolicy
      */
     public function view(User $user, Category $category): bool
     {
-        return $user->hasRole(['super_admin','admin','staff']);    }
+        return $user->hasRole(['super_admin','Admin','staff']);    }
 
     /**
      * Determine whether the user can create models.
@@ -45,28 +45,28 @@ class CategoryPolicy
      */
     public function delete(User $user, Category $category): bool
     {
-        return $user->hasRole(['super_admin','admin','staff']);    }
+        return $user->hasRole(['super_admin','Admin','staff']);    }
 
     /**
      * Determine whether the user can bulk delete.
      */
     public function deleteAny(User $user): bool
     {
-        return $user->hasRole(['super_admin','admin','staff']);    }
+        return $user->hasRole(['super_admin','Admin','staff']);    }
 
     /**
      * Determine whether the user can permanently delete.
      */
     public function forceDelete(User $user, Category $category): bool
     {
-        return $user->hasRole(['super_admin','admin','staff']);    }
+        return $user->hasRole(['super_admin','Admin','staff']);    }
 
     /**
      * Determine whether the user can permanently bulk delete.
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->hasRole(['super_admin','admin','staff']);    }
+        return $user->hasRole(['super_admin','Admin','staff']);    }
 
     /**
      * Determine whether the user can restore.

@@ -21,6 +21,8 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\IconColumn;
 use Spatie\Permission\Models\Role;
 use Carbon\Carbon;
+use Filament\Tables\Actions\ForceDeleteAction;
+
 
 class UserResource extends Resource
 {
@@ -105,6 +107,7 @@ class UserResource extends Resource
     public static function table(Tables\Table $table): Tables\Table
     {
         return $table
+        
             ->query(User::query())
             ->columns([
                 ImageColumn::make('profile_image')
@@ -146,11 +149,13 @@ class UserResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                ForceDeleteAction::make(),
             ])
             ->bulkActions([
                 BulkAction::make('delete')
-                    ->action(fn($records) => $records->each->delete())
-                    ->label('Delete Selected'),
+                ->action(fn($records) => $records->each->delete())
+                ->requiresConfirmation()
+                ->label('Delete Selected'),
             ]);
     }
 
